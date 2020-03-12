@@ -1,0 +1,39 @@
+#map{
+    width: 100%;
+    height: 400px;
+}
+
+#leftpanel{
+    float: left;
+    width: 68%;
+}
+
+#storeList{
+    flex-grow: 1;
+    border: 1px solid green;
+    overflow: auto;
+    height: 80%;
+}
+
+#rightpanel{
+    height: 400px;
+    float: left;
+    width: 30%;
+    min-width: 275px;
+}
+
+.colorGreen{
+    color:green;
+}
+
+.colorYellow{
+    color:orange;
+}
+
+.colorRed{
+    color: red;
+}
+
+.colorGray{
+    color: gray;
+}

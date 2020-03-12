@@ -1,4 +1,5 @@
-.lowertb{
-    height: 200px;
-    vertical-align: bottom;
+#lowertb{
+    position: absolute;
+ bottom: 0;
+ width: 100%;
 }

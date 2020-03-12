@@ -1,3 +1,52 @@
-<button mat-stroked-button (click)="searchCommand()">현재 좌표에서 검색</button>
-<div #gmap style="width:100%;height:400px"></div>
-<p>현재 좌표: </p><p>{{curCoorText}}</p>
+<!-- <button mat-stroked-button (click)="setCenterJokeCommand()">만든 놈 집 근처로 가기</button> -->
+<div id="leftpanel">
+    <div id="map" #gmap></div>
+    <div id="curCoor">
+        <p>현재 좌표 -</p>
+        <p>{{curCoorText}}</p>
+    </div>
+    <mat-slider [value]="searchZoom" max=5000 min=1 thumbLabel=true (change)="sliderChanged($event)">
+    </mat-slider>
+</div>
+<div id="rightpanel">
+    <button mat-raised-button color="primary" (click)="searchCommand()">현재 좌표에서 검색</button>
+    <mat-list appAppScrollable #storeList id="storeList">
+        <mat-card appAppOffsetTop *ngFor="let place of places">
+            <mat-card-header (click)="setCenterCommand(place)">
+                <mat-card-title>
+                    <h3 [ngClass]="{
+                        'colorRed': place.remain_stat == 'few',
+                        'colorGreen': place.remain_stat == 'plenty',
+                        'colorYellow': place.remain_stat == 'some',
+                        'colorGray': place.remain_stat == 'empty'
+                    }">{{place.name}}</h3>
+                </mat-card-title>
+                <mat-card-subtitle>
+                    <h4>
+                        주소: {{place.addr}}
+                    </h4>
+                </mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+                <div>
+                    <p>
+                        재고 확인 시점: {{place.stock_at}},
+                        현재 재고 상태: {{place.remain_stat}}
+                    </p>
+                    <button mat-stroked-button (click)="openKakaoWayfindCommand(place)">지도보기(kakao)</button>
+                </div>
+            </mat-card-content>
+            <!-- <div>
+                <h3 (click)="setCenterCommand(place)">{{place.name}}</h3>
+                <br/>
+                <p>
+                    재고 확인 시점: {{place.stock_at}},
+                    현재 재고 상태: {{place.remain_stat}}
+                </p>
+                <br/>
+                <button mat-stroked-button (click)="openKakaoWayfindCommand(place)">길찾기</button>
+            </div> -->
+        </mat-card>
+    </mat-list>
+    <app-lower-toolbar></app-lower-toolbar>
+</div>

@@ -1,4 +1,4 @@
-.uppertb{
-    height: 100px;
-    vertical-align: top;
+#uppertb{
+    background-color: black;
+    color: white;
 }
