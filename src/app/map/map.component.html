@@ -5,11 +5,15 @@
         <p>현재 좌표 -</p>
         <p>{{curCoorText}}</p>
     </div>
-    <mat-slider [value]="searchZoom" max=5000 min=1 thumbLabel=true (change)="sliderChanged($event)">
-    </mat-slider>
 </div>
 <div id="rightpanel">
     <button mat-raised-button color="primary" (click)="searchCommand()">현재 좌표에서 검색</button>
+    <span>검색 범위({{searchZoom}}m)    
+        <mat-slider [(ngModel)]="searchZoom" max=5000 min=1 thumbLabel=true (change)="sliderChanged($event)">
+        </mat-slider>
+    </span>
+
+    <app-lower-toolbar></app-lower-toolbar>
     <mat-list appAppScrollable #storeList id="storeList">
         <mat-card appAppOffsetTop *ngFor="let place of places">
             <mat-card-header (click)="setCenterCommand(place)">
@@ -18,7 +22,7 @@
                         'colorRed': place.remain_stat == 'few',
                         'colorGreen': place.remain_stat == 'plenty',
                         'colorYellow': place.remain_stat == 'some',
-                        'colorGray': place.remain_stat == 'empty'
+                        'colorGray': place.remain_stat == null
                     }">{{place.name}}</h3>
                 </mat-card-title>
                 <mat-card-subtitle>
@@ -33,20 +37,9 @@
                         재고 확인 시점: {{place.stock_at}},
                         현재 재고 상태: {{place.remain_stat}}
                     </p>
-                    <button mat-stroked-button (click)="openKakaoWayfindCommand(place)">지도보기(kakao)</button>
+                    <button  mat-raised-button color="accent" (click)="openKakaoWayfindCommand(place)">지도보기(kakao)</button>
                 </div>
             </mat-card-content>
-            <!-- <div>
-                <h3 (click)="setCenterCommand(place)">{{place.name}}</h3>
-                <br/>
-                <p>
-                    재고 확인 시점: {{place.stock_at}},
-                    현재 재고 상태: {{place.remain_stat}}
-                </p>
-                <br/>
-                <button mat-stroked-button (click)="openKakaoWayfindCommand(place)">길찾기</button>
-            </div> -->
         </mat-card>
     </mat-list>
-    <app-lower-toolbar></app-lower-toolbar>
 </div>

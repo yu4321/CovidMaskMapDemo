@@ -17,13 +17,13 @@ export class MapComponent implements OnInit, AfterContentInit, AfterViewInit {
   places: any;
   latitude: any;
   longitude: any;
-  selectedIndex : number;
-  drewMarkers : Array<google.maps.Circle>;
+  selectedIndex: number;
+  drewMarkers: Array<google.maps.Circle>;
   drewCircle: google.maps.Circle;
   drewInfos: Array<google.maps.InfoWindow>;
   zoom: any;
 
-  searchZoom: 1000;
+  searchZoom: number;
   @ViewChildren(AppOffsetTopDirective) listItems: QueryList<AppOffsetTopDirective>;
   @ViewChild(AppScrollableDirective) list: AppScrollableDirective;
 
@@ -40,23 +40,19 @@ export class MapComponent implements OnInit, AfterContentInit, AfterViewInit {
       zoom: 15,
       mapTypeId: google.maps.MapTypeId.HYBRID
     };
-    this.drewMarkers=new Array<google.maps.Circle>();
-    this.drewInfos=new Array<google.maps.InfoWindow>();
-    navigator.geolocation.getCurrentPosition((x)=>{
+    this.drewMarkers = new Array<google.maps.Circle>();
+    this.drewInfos = new Array<google.maps.InfoWindow>();
+    navigator.geolocation.getCurrentPosition((x) => {
       this.map.setCenter(new google.maps.LatLng(x.coords.latitude, x.coords.longitude));
     });
     this.map = new google.maps.Map(this.gmapElement.nativeElement, mapProp);
     this.map.addListener('center_changed', ( ) => this.recenter());
     this.recenter();
-    // alert('map init after');
   }
   ngAfterViewInit(): void {
-    console.log('afterviewinit');
-    // this.list.scrollTop = this.listItems.find((_, i) => i === this.selectedIndex).offsetTop;
-    // throw new Error("Method not implemented.");
+    console.log('afterviewinitCalled');
   }
-  
-  sliderChanged(x:any){
+  sliderChanged(x: any) {
     this.showSearchable();
   }
 
@@ -69,129 +65,130 @@ export class MapComponent implements OnInit, AfterContentInit, AfterViewInit {
     this.showSearchable();
   }
 
-  showSearchable(){
-    if(this.drewCircle!=null){
-      this.drewCircle.setMap(null);
+  showSearchable() {
+    if (this.drewCircle == null) {
+      const color = '#FFFFFF';
+      const circle = new google.maps.Circle({
+        center: new google.maps.LatLng(this.latitude, this.longitude),
+        radius: this.searchZoom,
+        editable: false,
+        strokeColor: color,
+        fillColor: color,
+        fillOpacity: 0.01,
+        clickable: true
+      });
+      circle.setMap(this.map);
+      this.drewCircle = circle;
+    } else {
+      const circle = this.drewCircle;
+      circle.setRadius(this.searchZoom);
+      circle.setCenter(new google.maps.LatLng(this.latitude, this.longitude));
     }
-    let color='#FFFFFF';
-    let circle = new google.maps.Circle({
-      center:new google.maps.LatLng(this.latitude, this.longitude),
-      radius:this.searchZoom,
-      editable:false,
-      strokeColor:color,
-      fillColor:color,
-      fillOpacity:0.01,
-      clickable:true
-    });
-    circle.setMap(this.map);
-    this.drewCircle=circle;
   }
 
   setXY() {
-    this.curCoorText = '위도 : ' + this.latitude + ', 경도 : ' + this.longitude + ', 확대율: '+ this.zoom;
+    this.curCoorText = '위도 : ' + this.latitude + ', 경도 : ' + this.longitude + ', 확대율: ' + this.zoom;
   }
 
   searchCommand() {
-    const apiAddress =  new URL('https://8oi9s0nnth.apigw.ntruss.com/corona19-masks/v1/storesByGeo/json');
-    console.log('sending url: '+`https://8oi9s0nnth.apigw.ntruss.com/corona19-masks/v1/storesByGeo/json?lat=${this.latitude}&lng=${this.longitude}&m=${this.searchZoom}`);
-    fetch(`https://8oi9s0nnth.apigw.ntruss.com/corona19-masks/v1/storesByGeo/json?lat=${this.latitude}&lng=${this.longitude}&m=${this.searchZoom}`).then((x)=>{
+    let urlbase = 'https://8oi9s0nnth.apigw.ntruss.com/corona19-masks/v1/storesByGeo/json?';
+    urlbase += `lat=${this.latitude}`;
+    urlbase += `&lng=${this.longitude}`;
+    urlbase += `&m=${this.searchZoom}`;
+    console.log('sending url: ' + urlbase);
+    fetch(urlbase).then((x) => {
+      console.log('get fetch complete');
       return x.json();
-    }).then((res)=>{
-      if(res.count>0){
-        this.places=res.stores;
-      }
-      else
-      {
+    }).then((res) => {
+      if (res.count > 0) {
+        console.log('start setter');
+        this.places = res.stores;
+        console.log('endsetter setter');
+      } else {
         alert('결과 없음');
-        this.places= null;
-        this.apiService.StoreList=null;
+        this.places = null;
+        this.apiService.StoreList = null;
+        return;
       }
-      this.apiService.StoreList=this.places;
-      this.MakeMarkers();
+      console.log('start listmake');
+      this.apiService.StoreList = this.places;
+      this.MakeMarkers().then(() => {
+        console.log('end listmake');
+      });
     });
   }
 
-  MakeMarkers(){
-    this.drewMarkers.forEach((x)=>x.setMap(null));
-    this.drewInfos.forEach((x)=>x.close());
-    this.drewMarkers= [];
-    this.drewInfos=[];
+  MakeMarkers() {
+    console.log('start makemarker');
+    this.drewMarkers.forEach((x) => x.setMap(null));
+    this.drewInfos.forEach((x) => x.close());
+    this.drewMarkers = [];
+    this.drewInfos = [];
     this.places.forEach(element => {
-      let color = this.GetColor(element.remain_stat);
-      let circle = new google.maps.Circle({
-        center:new google.maps.LatLng(element.lat, element.lng),
-        radius:15,
-        editable:false,
-        strokeColor:color,
-        fillColor:color,
-        fillOpacity:0.3,
+      const color = this.GetColor(element.remain_stat);
+      const circle = new google.maps.Circle({
+        center: new google.maps.LatLng(element.lat, element.lng),
+        radius: 15,
+        editable: false,
+        strokeColor: color,
+        fillColor: color,
+        fillOpacity: 0.3,
       });
-      circle.setMap(this.map);
       const info = new google.maps.InfoWindow({
         content: '<div><h2>' + element.name + '</h2><p>' + element.addr + '</p></div>'
       });
-      // info.setPosition(circle.getCenter());
-      // info.open(this.map);
-      circle.addListener('click',()=>{
+      circle.addListener('click', () => {
         console.log(info.getContent());
         info.setPosition(circle.getCenter());
         info.open(this.map);
-        this.selectedIndex=this.drewMarkers.indexOf(circle);
-        console.log('selected index: '+this.selectedIndex);
-        console.log('listitem cur: '+this.listItems.length);
+        this.selectedIndex = this.drewMarkers.indexOf(circle);
         this.list.scrollTop = this.listItems.find((_, i) => i === this.selectedIndex).offsetTop - 200;
-        // this.storeList.nativeElement[this.selectedIndex].scrollIntoView();
-        // this.storeList[this.selectedIndex].scrollIntoView();
-        // console.log('storelist length'+this.storeList._getListType().length);
-        // console.log('storelist length'+this.storeList[0]);
-        // this.sto
-        // info.open(this.map);
       });
       this.drewInfos.push(info);
       this.drewMarkers.push(circle);
     });
+    console.log('finish makemarker');
+    return new Promise(() => {
+      this.drewMarkers.forEach((x) => {
+        x.setMap(this.map);
+      });
+      console.log('really finish makemarker');
+    });
   }
 
-  GetColor(stat: string){
-    if(stat==='empty'){
+  GetColor(stat: string) {
+    if (stat === 'empty') {
       return '#000000';
-    }
-    if(stat==='few'){
+    } else if (stat === 'few') {
       return '#FF0000';
-    }
-    if(stat==='some'){
+    } else if (stat === 'some') {
       return '#FFFF00';
-    }
-    if(stat==='plenty'){
+    } else if (stat === 'plenty') {
       return '#00FF00';
-    }
-    else {
+    } else {
       return '#FFFFFF';
     }
   }
 
-  setCenterCommand(curplace: any){
-    const cen=new google.maps.LatLng(curplace.lat, curplace.lng);
+  setCenterCommand(curplace: any) {
+    const cen = new google.maps.LatLng(curplace.lat, curplace.lng);
     this.map.setCenter(cen);
-    // this.drewMarkers.indexOf
-    const circle=this.drewMarkers[this.places.indexOf(curplace)];
-    if(circle!=null) {
-      let info=this.drewInfos[this.places.indexOf(curplace)];
+    const circle = this.drewMarkers[this.places.indexOf(curplace)];
+    if (circle != null) {
+      const info = this.drewInfos[this.places.indexOf(curplace)];
       console.log(info.getContent());
       info.setPosition(circle.getCenter());
       info.open(this.map);
-    }
-    else{
+    } else {
       console.log('not found');
     }
   }
 
-  openKakaoWayfindCommand(curplace: any){
-    let url=`https://map.kakao.com/link/map/${curplace.name},${curplace.lat},${curplace.lng}`;
-    window.open(url);
+  openKakaoWayfindCommand(curplace: any) {
+    window.open(`https://map.kakao.com/link/map/${curplace.name},${curplace.lat},${curplace.lng}`);
   }
 
-  setCenterJokeCommand(){
+  setCenterJokeCommand() {
     this.map.setCenter(new google.maps.LatLng(37.66993116807911, 127.0831345484013));
     this.map.setZoom(19);
     this.searchCommand();

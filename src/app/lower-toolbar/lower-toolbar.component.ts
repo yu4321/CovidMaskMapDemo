@@ -9,36 +9,49 @@ import { ApiServiceService } from '../api-service.service';
 export class LowerToolbarComponent implements OnInit {
 
   beststore: string;
-  constructor(private apiServ: ApiServiceService) { 
-    apiServ.listChanged.subscribe((x)=>{
+  constructor(private apiServ: ApiServiceService) {
+    apiServ.listChanged.subscribe((x) => {
+      if (apiServ.StoreList == null) {
+        this.beststore = '';
+        return;
+      }
       let candidate = '';
-      let canNum=-1;
+      let canNum = -1;
       apiServ.StoreList.forEach(element => {
-        let tmpval=this.getVal(element.remain_stat);
-        if(tmpval > canNum){
-          candidate=element.name;
+        const tmpval = this.getVal(element.remain_stat);
+        if (tmpval > canNum) {
+          candidate = element.name;
           canNum = tmpval;
         }
       });
-      this.beststore=candidate;
-        //apiServ.StoreList
+      this.beststore = candidate;
     });
   }
 
-  getVal(stat: string){
-    if(stat==='empty'){
+  GetColor(stat: string) {
+    if (stat === 'empty') {
+      return '#000000';
+    } else if (stat === 'few') {
+      return '#FF0000';
+    } else if (stat === 'some') {
+      return '#FFFF00';
+    } else if (stat === 'plenty') {
+      return '#00FF00';
+    } else {
+      return '#FFFFFF';
+    }
+  }
+
+  getVal(stat: string) {
+    if (stat === 'empty') {
       return 0;
-    }
-    if(stat==='few'){
+    } else if (stat === 'few') {
       return 1;
-    }
-    if(stat==='some'){
+    } else if (stat === 'some') {
       return 2;
-    }
-    if(stat==='plenty'){
+    } else if (stat === 'plenty') {
       return 3;
-    }
-    else{
+    } else {
       return -99;
     }
   }

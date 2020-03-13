@@ -1,12 +1,37 @@
+@media (min-width: 500px){
+    #leftpanel{
+        float: left;
+        width: 68%;
+    }
+    #rightpanel{
+        height: 400px;
+        float: left;
+        width: 30%;
+        min-width: 275px;
+    }
+    
+}
+
+
+@media (max-width: 499px){
+    #leftpanel{
+        float: left;
+        width: 100%;
+    }
+    #rightpanel{
+        height: 400px;
+        float: left;
+        width: 100%;
+        min-width: 275px;
+    }
+}
+
 #map{
     width: 100%;
     height: 400px;
 }
 
-#leftpanel{
-    float: left;
-    width: 68%;
-}
+
 
 #storeList{
     flex-grow: 1;
@@ -15,12 +40,6 @@
     height: 80%;
 }
 
-#rightpanel{
-    height: 400px;
-    float: left;
-    width: 30%;
-    min-width: 275px;
-}
 
 .colorGreen{
     color:green;
