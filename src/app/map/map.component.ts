@@ -1,9 +1,9 @@
 /// <reference types="@types/googlemaps" />
-import { Component, OnInit, ViewChild, AfterContentInit, ViewChildren, QueryList, AfterViewInit, ElementRef } from '@angular/core';
+import { Component, OnInit, ViewChild, AfterContentInit, ViewChildren, QueryList, AfterViewInit } from '@angular/core';
 import { ApiServiceService } from '../api-service.service';
 import { AppOffsetTopDirective } from '../app-offset-top.directive';
 import { AppScrollableDirective } from '../app-scrollable.directive';
-import { MatList } from '@angular/material/list';
+import { GeoJsonReq, GeoJsonModel } from '../models/geoJsonModel';
 @Component({
   selector: 'app-map',
   templateUrl: './map.component.html',
@@ -12,9 +12,11 @@ import { MatList } from '@angular/material/list';
 export class MapComponent implements OnInit, AfterContentInit, AfterViewInit {
   @ViewChild('gmap', {static: true}) gmapElement: any;
   @ViewChild('storeList', {static: true}) storeList: any;
+  @ViewChildren(AppOffsetTopDirective) listItems: QueryList<AppOffsetTopDirective>;
+  @ViewChild(AppScrollableDirective) list: AppScrollableDirective;
   curCoorText: string;
   map: google.maps.Map;
-  places: any;
+  places: GeoJsonModel[];
   latitude: any;
   longitude: any;
   selectedIndex: number;
@@ -24,17 +26,44 @@ export class MapComponent implements OnInit, AfterContentInit, AfterViewInit {
   zoom: any;
 
   searchZoom: number;
-  @ViewChildren(AppOffsetTopDirective) listItems: QueryList<AppOffsetTopDirective>;
-  @ViewChild(AppScrollableDirective) list: AppScrollableDirective;
 
-  constructor(private apiService: ApiServiceService) { }
+  beststore: GeoJsonModel;
+
+  constructor(private apiService: ApiServiceService) {
+    apiService.listChanged.subscribe((x) => {
+      if (apiService.StoreList == null) {
+        this.beststore = null;
+        return;
+      }
+      let candidate = '';
+      let canNum = -1;
+
+      const newList = new Array<any>();
+      apiService.StoreList.forEach((element) => {
+        newList.push({
+            name: element.name,
+            remain_stat: element.remain_stat,
+            distance: this.distance(apiService.lastCenter.lat(), apiService.lastCenter.lng(), element.lat, element.lng)
+          });
+      });
+      newList.sort((a, b) => a.distance - b.distance);
+      newList.forEach(element => {
+        const tmpval = apiService.getValByStringbyStatus(element.remain_stat);
+        if (tmpval > canNum) {
+          candidate = element.name;
+          canNum = tmpval;
+        }
+      });
+      this.beststore = apiService.StoreList.find((store) => store.name === candidate);
+    });
+  }
 
   ngOnInit() {
     this.curCoorText = '';
     this.searchZoom = 1000;
   }
   ngAfterContentInit() {
-    const mapProp : google.maps.MapOptions = {
+    const mapProp: google.maps.MapOptions = {
       center: new google.maps.LatLng(37.5793, 127.8143),
       zoom: 15,
       mapTypeId: google.maps.MapTypeId.ROADMAP,
@@ -56,6 +85,15 @@ export class MapComponent implements OnInit, AfterContentInit, AfterViewInit {
     this.showSearchable();
   }
 
+  distance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const p = 0.017453292519943295;    // Math.PI / 180
+    const c = Math.cos;
+    const a = 0.5 - c((lat2 - lat1) * p) / 2 +
+            c(lat1 * p) * c(lat2 * p) *
+            (1 - c((lon2 - lon1) * p)) / 2;
+    return 12742 * Math.asin(Math.sqrt(a)); // 2 * R; R = 6371 km
+  }
+
   recenter() {
     const curCenter = this.map.getCenter();
     this.latitude = curCenter.lat();
@@ -67,14 +105,14 @@ export class MapComponent implements OnInit, AfterContentInit, AfterViewInit {
 
   showSearchable() {
     if (this.drewCircle == null) {
-      const color = '#000000';
+      const color = '#4287f5';
       const circle = new google.maps.Circle({
         center: new google.maps.LatLng(this.latitude, this.longitude),
         radius: this.searchZoom,
         editable: false,
         strokeColor: color,
         fillColor: color,
-        fillOpacity: 0.01,
+        fillOpacity: 0.1,
         clickable: true
       });
       circle.setMap(this.map);
@@ -87,43 +125,35 @@ export class MapComponent implements OnInit, AfterContentInit, AfterViewInit {
   }
 
   setXYText() {
-    this.curCoorText = '위도 : ' + this.latitude + ', 경도 : ' + this.longitude + ', 확대율: ' + this.zoom;
+    this.curCoorText = '위도 : ' + this.latitude + ', 경도 : ' + this.longitude;
   }
 
   searchCommand() {
-    let urlbase = 'https://8oi9s0nnth.apigw.ntruss.com/corona19-masks/v1/storesByGeo/json?';
-    urlbase += `lat=${this.latitude}`;
-    urlbase += `&lng=${this.longitude}`;
-    urlbase += `&m=${this.searchZoom}`;
-    console.log('sending url: ' + urlbase);
-    fetch(urlbase).then((x) => {
-      console.log('get fetch complete');
-      return x.json();
-    }).then((res) => {
-      if (res.count > 0) {
-        console.log('start setter');
-        this.places = res.stores;
-        console.log('endsetter setter');
-      } else {
+    const req = new GeoJsonReq();
+    req.lat = this.latitude;
+    req.lng = this.longitude;
+    req.m = this.searchZoom;
+    this.apiService.searchStores(req).then((x) => {
+      if (x == null) {
         alert('결과 없음');
         this.places = null;
-        this.apiService.StoreList = null;
-        return;
+      } else {
+        this.places = x;
       }
-      console.log('start listmake');
-      this.apiService.StoreList = this.places;
-      this.MakeMarkers().then(() => {
-        console.log('end listmake');
+      this.makeMarkers().then(() => {
+        console.log('end markmake');
       });
     });
   }
 
-  MakeMarkers() {
-    console.log('start makemarker');
+  makeMarkers(): Promise<void> {
     this.drewMarkers.forEach((x) => x.setMap(null));
     this.drewInfos.forEach((x) => x.close());
     this.drewMarkers = [];
     this.drewInfos = [];
+    if (this.places == null) {
+      return new Promise(() => { });
+    }
     this.places.forEach(element => {
       const fillcolor = this.apiService.getColorStringbyStatus(element.remain_stat);
       const strokecolor = this.apiService.getSColorStringbyStatus(element.remain_stat);
@@ -144,21 +174,19 @@ export class MapComponent implements OnInit, AfterContentInit, AfterViewInit {
         info.open(this.map);
         this.selectedIndex = this.drewMarkers.indexOf(circle);
         const height = this.storeList._elementRef.nativeElement.offsetHeight;
-        this.list.scrollTop = this.listItems.find((_, i) => i === this.selectedIndex).offsetTop - height * 2.5;
+        this.list.scrollTop = this.listItems.find((_, i) => i === this.selectedIndex).offsetTop - height;
       });
       this.drewInfos.push(info);
       this.drewMarkers.push(circle);
     });
-    console.log('finish makemarker');
     return new Promise(() => {
       this.drewMarkers.forEach((x) => {
         x.setMap(this.map);
       });
-      console.log('really finish makemarker');
     });
   }
 
-  setCenterCommand(curplace: any) {
+  setCenterCommand(curplace: GeoJsonModel) {
     const cen = new google.maps.LatLng(curplace.lat, curplace.lng);
     this.map.setCenter(cen);
     const circle = this.drewMarkers[this.places.indexOf(curplace)];
@@ -172,13 +200,29 @@ export class MapComponent implements OnInit, AfterContentInit, AfterViewInit {
     }
   }
 
-  openKakaoWayfindCommand(curplace: any) {
+  openKakaoMapCommand(curplace: GeoJsonModel) {
     window.open(`https://map.kakao.com/link/map/${curplace.name},${curplace.lat},${curplace.lng}`);
   }
 
-  setCenterJokeCommand() {
-    this.map.setCenter(new google.maps.LatLng(37.66993116807911, 127.0831345484013));
-    this.map.setZoom(19);
-    this.searchCommand();
+  openGoogleMapCommand(curplace: GeoJsonModel) {
+    window.open(`https://www.google.com/maps/search/?api=1&query=${curplace.lat},${curplace.lng}`);
+  }
+
+  menuHideShowCommand() {
+    const x = document.getElementById('rightpanel');
+    if (x.style.display === 'none' || x.style.display === '') {
+      x.style.display = 'block';
+    } else {
+      x.style.display = 'none';
+    }
+  }
+
+  helpHideShowCommand() {
+    const x = document.getElementById('leftpanel');
+    if (x.style.display === 'none' || x.style.display === '') {
+      x.style.display = 'block';
+    } else {
+      x.style.display = 'none';
+    }
   }
 }

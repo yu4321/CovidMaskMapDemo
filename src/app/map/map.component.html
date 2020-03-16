@@ -1,19 +1,30 @@
-<!-- <button mat-stroked-button (click)="setCenterJokeCommand()">만든 놈 집 근처로 가기</button> -->
 <div id="leftpanel">
-    <div id="map" #gmap></div>
-    <div id="curCoor">
-        <p>현재 좌표 -</p>
-        <p>{{curCoorText}}</p>
-    </div>
+    <p>초록색: 100개 이상, 노랑색: 30개 이상, 빨강색: 2개 이상, 검은색: 재고 없음, 흰색: 정보 없음.</p>
+    <p>파란색 원은 검색 범위를 나타냅니다.</p>
+    <p>검색 결과는 공공 API의 업데이트 상태에 따라 달라질 수 있습니다.</p>
+    <p>추천 약국은 1. 재고량, 2. 거리에 의해 결정됩니다.</p>
+</div>
+<div id="mapcontainer">
+    <div id="map" #gmap ></div>
 </div>
 <div id="rightpanel">
+    <div id="curCoor">
+        <h3>현재 좌표</h3>
+        <p class="labelText">{{curCoorText}}</p>
+    </div>
     <button mat-raised-button color="primary" (click)="searchCommand()">현재 좌표에서 검색</button>
-    <span>검색 범위({{searchZoom}}m)    
+    <div class="labelText">검색 범위({{searchZoom}}m)    
         <mat-slider [(ngModel)]="searchZoom" max=5000 min=1 thumbLabel=true (change)="sliderChanged($event)">
         </mat-slider>
-    </span>
-
-    <app-lower-toolbar></app-lower-toolbar>
+    </div>
+    <div id="lowertb" *ngIf="beststore" (click)="setCenterCommand(beststore)">
+        <h3 [ngClass]="{
+            'colorRed': beststore.remain_stat == 'few',
+            'colorGreen': beststore.remain_stat == 'plenty',
+            'colorYellow': beststore.remain_stat == 'some',
+            'colorGray': beststore.remain_stat == null
+        }">근방 추천 약국: {{beststore.name}}</h3>
+    </div>
     <mat-list appAppScrollable #storeList id="storeList">
         <mat-card appAppOffsetTop *ngFor="let place of places">
             <mat-card-header (click)="setCenterCommand(place)">
@@ -37,9 +48,12 @@
                         재고 확인 시점: {{place.stock_at}},
                         현재 재고 상태: {{place.remain_stat}}
                     </p>
-                    <button  mat-raised-button color="accent" (click)="openKakaoWayfindCommand(place)">지도보기(kakao)</button>
+                    <button mat-raised-button color="accent" (click)="openKakaoMapCommand(place)">지도보기(kakao)</button>
+                    <button mat-raised-button color="warn" (click)="openGoogleMapCommand(place)">지도보기(google)</button>
                 </div>
             </mat-card-content>
         </mat-card>
     </mat-list>
 </div>
+<button mat-raised-button color="accent" id="toggleBtn" (click)="menuHideShowCommand()">메뉴 숨기기/보이기</button>
+<button mat-raised-button color="accent" id="toggleBtn2" (click)="helpHideShowCommand()">도움말 숨기기/보이기</button>

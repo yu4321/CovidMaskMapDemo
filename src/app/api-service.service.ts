@@ -1,21 +1,49 @@
 import { Injectable, EventEmitter } from '@angular/core';
+import { GeoJsonReq, GeoJsonModel } from './models/geoJsonModel';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ApiServiceService {
 
-  private storeList: any;
-  get StoreList() {
+  private storeList: GeoJsonModel[];
+  lastCenter: google.maps.LatLng;
+  urlbase: string;
+
+  get StoreList(): GeoJsonModel[] {
     return this.storeList;
   }
-  set StoreList(val: any) {
+  set StoreList(val: GeoJsonModel[]) {
     this.storeList = val;
     this.listChanged.emit(true);
   }
 
   listChanged: EventEmitter<boolean> = new EventEmitter<boolean>();
-  constructor() { }
+  constructor() {
+    this.urlbase = 'https://8oi9s0nnth.apigw.ntruss.com/corona19-masks/v1/storesByGeo/json?';
+   }
+
+  searchStores(param: GeoJsonReq): Promise<Array<GeoJsonModel>> {
+    this.lastCenter = new google.maps.LatLng(param.lat, param.lng);
+    let currentUrl = this.urlbase;
+    currentUrl += `lat=${param.lat}`;
+    currentUrl += `&lng=${param.lng}`;
+    currentUrl += `&m=${param.m}`;
+    console.log('sending url: ' + currentUrl);
+    return fetch(currentUrl).then((x) => {
+      console.log('get fetch complete');
+      return x.json();
+    }).then((res) => {
+      if (res.count > 0) {
+      const model: Array<GeoJsonModel> = res.stores;
+      this.StoreList = model;
+      return model;
+      } else {
+        this.StoreList = null;
+        return null;
+      }
+    });
+  }
 
   getColorStringbyStatus(stat: string): string {
     if (stat === 'empty') {
