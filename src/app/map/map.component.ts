@@ -1,5 +1,5 @@
 /// <reference types="@types/googlemaps" />
-import { Component, OnInit, ViewChild, AfterContentInit, ViewChildren, QueryList, AfterViewInit } from '@angular/core';
+import { Component, OnInit, ViewChild, AfterContentInit, ViewChildren, QueryList, AfterViewInit, ElementRef } from '@angular/core';
 import { ApiServiceService } from '../api-service.service';
 import { AppOffsetTopDirective } from '../app-offset-top.directive';
 import { AppScrollableDirective } from '../app-scrollable.directive';
@@ -11,7 +11,7 @@ import { MatList } from '@angular/material/list';
 })
 export class MapComponent implements OnInit, AfterContentInit, AfterViewInit {
   @ViewChild('gmap', {static: true}) gmapElement: any;
-  @ViewChild('storeList', {static: true}) storeList: MatList;
+  @ViewChild('storeList', {static: true}) storeList: any;
   curCoorText: string;
   map: google.maps.Map;
   places: any;
@@ -32,13 +32,13 @@ export class MapComponent implements OnInit, AfterContentInit, AfterViewInit {
   ngOnInit() {
     this.curCoorText = '';
     this.searchZoom = 1000;
-    // alert('map inited');
   }
   ngAfterContentInit() {
-    const mapProp = {
+    const mapProp : google.maps.MapOptions = {
       center: new google.maps.LatLng(37.5793, 127.8143),
       zoom: 15,
-      mapTypeId: google.maps.MapTypeId.HYBRID
+      mapTypeId: google.maps.MapTypeId.ROADMAP,
+      disableDefaultUI : true
     };
     this.drewMarkers = new Array<google.maps.Circle>();
     this.drewInfos = new Array<google.maps.InfoWindow>();
@@ -61,13 +61,13 @@ export class MapComponent implements OnInit, AfterContentInit, AfterViewInit {
     this.latitude = curCenter.lat();
     this.longitude = curCenter.lng();
     this.zoom = this.map.getZoom();
-    this.setXY();
+    this.setXYText();
     this.showSearchable();
   }
 
   showSearchable() {
     if (this.drewCircle == null) {
-      const color = '#FFFFFF';
+      const color = '#000000';
       const circle = new google.maps.Circle({
         center: new google.maps.LatLng(this.latitude, this.longitude),
         radius: this.searchZoom,
@@ -86,7 +86,7 @@ export class MapComponent implements OnInit, AfterContentInit, AfterViewInit {
     }
   }
 
-  setXY() {
+  setXYText() {
     this.curCoorText = '위도 : ' + this.latitude + ', 경도 : ' + this.longitude + ', 확대율: ' + this.zoom;
   }
 
@@ -125,24 +125,26 @@ export class MapComponent implements OnInit, AfterContentInit, AfterViewInit {
     this.drewMarkers = [];
     this.drewInfos = [];
     this.places.forEach(element => {
-      const color = this.GetColor(element.remain_stat);
+      const fillcolor = this.apiService.getColorStringbyStatus(element.remain_stat);
+      const strokecolor = this.apiService.getSColorStringbyStatus(element.remain_stat);
       const circle = new google.maps.Circle({
         center: new google.maps.LatLng(element.lat, element.lng),
-        radius: 15,
+        radius: 13,
         editable: false,
-        strokeColor: color,
-        fillColor: color,
-        fillOpacity: 0.3,
+        strokeColor: fillcolor,
+        fillColor: strokecolor,
+        fillOpacity: 0.5,
+        strokeWeight: 3
       });
       const info = new google.maps.InfoWindow({
         content: '<div><h2>' + element.name + '</h2><p>' + element.addr + '</p></div>'
       });
       circle.addListener('click', () => {
-        console.log(info.getContent());
         info.setPosition(circle.getCenter());
         info.open(this.map);
         this.selectedIndex = this.drewMarkers.indexOf(circle);
-        this.list.scrollTop = this.listItems.find((_, i) => i === this.selectedIndex).offsetTop - 200;
+        const height = this.storeList._elementRef.nativeElement.offsetHeight;
+        this.list.scrollTop = this.listItems.find((_, i) => i === this.selectedIndex).offsetTop - height * 2.5;
       });
       this.drewInfos.push(info);
       this.drewMarkers.push(circle);
@@ -154,20 +156,6 @@ export class MapComponent implements OnInit, AfterContentInit, AfterViewInit {
       });
       console.log('really finish makemarker');
     });
-  }
-
-  GetColor(stat: string) {
-    if (stat === 'empty') {
-      return '#000000';
-    } else if (stat === 'few') {
-      return '#FF0000';
-    } else if (stat === 'some') {
-      return '#FFFF00';
-    } else if (stat === 'plenty') {
-      return '#00FF00';
-    } else {
-      return '#FFFFFF';
-    }
   }
 
   setCenterCommand(curplace: any) {

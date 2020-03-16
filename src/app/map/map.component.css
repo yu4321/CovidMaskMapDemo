@@ -1,29 +1,13 @@
-@media (min-width: 500px){
-    #leftpanel{
-        float: left;
-        width: 68%;
-    }
-    #rightpanel{
-        height: 400px;
-        float: left;
-        width: 30%;
-        min-width: 275px;
-    }
-    
+
+#leftpanel{
+    float: left;
+    width: 100%;
 }
-
-
-@media (max-width: 499px){
-    #leftpanel{
-        float: left;
-        width: 100%;
-    }
-    #rightpanel{
-        height: 400px;
-        float: left;
-        width: 100%;
-        min-width: 275px;
-    }
+#rightpanel{
+    height: 400px;
+    float: left;
+    width: 100%;
+    min-width: 275px;
 }
 
 #map{
